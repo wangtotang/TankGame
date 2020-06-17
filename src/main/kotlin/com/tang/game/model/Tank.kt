@@ -3,17 +3,18 @@ package com.tang.game.model
 import com.tang.game.Config
 import com.tang.game.business.Blockable
 import com.tang.game.business.Moveable
+import com.tang.game.ext.checkCollision
 import org.itheima.kotlin.game.core.Painter
 
-class Tank(override var x: Int, override var y: Int) : Moveable {
+class Tank(override var x: Int, override var y: Int) : Moveable, Blockable {
 
     override var direction: Direction = Direction.UP
 
     override val speed: Int = 6
 
-    var wrongDirection: Direction? = null
+    override var wrongDirection: Direction? = null
 
-    override fun move(direction: Direction) {
+    fun move(direction: Direction) {
 
         if (direction == wrongDirection) {
             return
@@ -44,33 +45,6 @@ class Tank(override var x: Int, override var y: Int) : Moveable {
             Direction.LEFT -> "imgs/tank_l.gif"
         }
         Painter.drawImage(imagePath, x, y)
-    }
-
-    override fun willCollision(blockable: Blockable): Direction? {
-
-        var tempX = x
-        var tempY = y
-        when (direction) {
-            Direction.UP -> tempY -= speed
-            Direction.RIGHT -> tempX += speed
-            Direction.DOWN -> tempY += speed
-            Direction.LEFT -> tempX -= speed
-        }
-
-        val isCollision = when {
-            tempY >= blockable.y + blockable.height -> false
-            tempY <= blockable.y - height -> false
-            tempX <= blockable.x - width -> false
-            tempX >= blockable.x + blockable.width -> false
-            else -> true
-        }
-
-        return if (isCollision) direction else null
-
-    }
-
-    override fun notifyCollision(direction: Direction?) {
-        wrongDirection = direction
     }
 
     fun shot(): Bullet {

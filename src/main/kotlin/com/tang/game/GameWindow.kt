@@ -1,9 +1,6 @@
 package com.tang.game
 
-import com.tang.game.business.AutoMoveable
-import com.tang.game.business.Blockable
-import com.tang.game.business.Destroyable
-import com.tang.game.business.Moveable
+import com.tang.game.business.*
 import com.tang.game.model.*
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
@@ -27,11 +24,14 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
         lines.forEach { line ->
             var columns: Int = 0
             line.toCharArray().forEach { ch ->
+                val x = columns * Config.block
+                val y = rows * Config.block
                 when (ch) {
-                    '砖' -> views.add(Wall(columns * Config.block, rows * Config.block))
-                    '铁' -> views.add(Steel(columns * Config.block, rows * Config.block))
-                    '水' -> views.add(Water(columns * Config.block, rows * Config.block))
-                    '草' -> views.add(Grass(columns * Config.block, rows * Config.block))
+                    '砖' -> views.add(Wall(x, y))
+                    '铁' -> views.add(Steel(x, y))
+                    '水' -> views.add(Water(x, y))
+                    '草' -> views.add(Grass(x, y))
+                    '敌' -> views.add(EnemyTank(x, y))
                 }
                 columns++
             }
@@ -66,9 +66,9 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
 
             var direction: Direction? = null
 
-            views.filterIsInstance<Blockable>().forEach blockTag@{ block ->
+            views.filter { (it is Blockable) and (it != move) }.forEach blockTag@{ block ->
 
-                move.willCollision(block)?.let {
+                move.willCollision(block as Blockable)?.let {
                     direction = it
                     return@blockTag
                 }
@@ -85,6 +85,19 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
 
         views.filterIsInstance<Destroyable>().forEach {
             if (it.isDestroyed()) views.remove(it)
+        }
+
+        views.filterIsInstance<Attackable>().forEach { attack ->
+            views.filterIsInstance<Sufferable>().forEach sufferTag@ { suffer ->
+                if (attack.isCollision(suffer)) {
+                    attack.notifyAttack(suffer)
+                    val blast = suffer.notifySuffer(attack)
+                    blast?.let {
+                        views.addAll(blast)
+                    }
+                    return@sufferTag
+                }
+            }
         }
 
     }
