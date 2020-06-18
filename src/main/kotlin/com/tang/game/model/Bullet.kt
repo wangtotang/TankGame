@@ -8,8 +8,10 @@ import com.tang.game.business.Sufferable
 import com.tang.game.ext.checkCollision
 import org.itheima.kotlin.game.core.Painter
 
-class Bullet(override val direction: Direction, create: (width: Int, height: Int) -> Pair<Int, Int>) :
-    AutoMoveable, Destroyable, Attackable{
+class Bullet(override val owner: View, override val direction: Direction, create: (width: Int, height: Int) -> Pair<Int, Int>) :
+    AutoMoveable, Destroyable, Attackable, Sufferable{
+
+    override var blood: Int = 1
 
     override var x: Int = 0
     override var y: Int = 0
@@ -41,6 +43,7 @@ class Bullet(override val direction: Direction, create: (width: Int, height: Int
     }
 
     override fun isDestroyed(): Boolean {
+        if (blood <= 0) return true
         if (isDestroyed) return true
         return when {
             x + width <= 0 -> true
@@ -57,6 +60,11 @@ class Bullet(override val direction: Direction, create: (width: Int, height: Int
 
     override fun notifyAttack(sufferable: Sufferable) {
         isDestroyed = true
+    }
+
+    override fun notifySuffer(attackable: Attackable): Array<View>? {
+        blood -= attackable.attack
+        return null
     }
 
     override fun draw() {

@@ -1,12 +1,14 @@
 package com.tang.game.model
 
 import com.tang.game.Config
-import com.tang.game.business.Blockable
-import com.tang.game.business.Moveable
+import com.tang.game.business.*
 import com.tang.game.ext.checkCollision
+import org.itheima.kotlin.game.core.Composer
 import org.itheima.kotlin.game.core.Painter
 
-class Tank(override var x: Int, override var y: Int) : Moveable, Blockable {
+class Tank(override var x: Int, override var y: Int) : Moveable, Blockable, Sufferable, Destroyable {
+
+    override var blood: Int = 20
 
     override var direction: Direction = Direction.UP
 
@@ -48,7 +50,7 @@ class Tank(override var x: Int, override var y: Int) : Moveable, Blockable {
     }
 
     fun shot(): Bullet {
-        return Bullet(direction) { bulletWidth, bulletHeight ->
+        return Bullet(this, direction) { bulletWidth, bulletHeight ->
             var bulletX = 0
             var bulletY = 0
 
@@ -73,6 +75,20 @@ class Tank(override var x: Int, override var y: Int) : Moveable, Blockable {
 
             Pair(bulletX ,bulletY)
         }
+    }
+
+    override fun isDestroyed(): Boolean {
+        return false
+    }
+
+    override fun notifySuffer(attackable: Attackable): Array<View>? {
+        blood -= attackable.attack
+        Composer.play("audios/hit.wav")
+        return arrayOf(Blast{ blastWidth, blastHeight ->
+            val blastX = x - (blastWidth - width) / 2
+            val blastY = y - (blastHeight - height) / 2
+            Pair(blastX, blastY)
+        })
     }
 
 }

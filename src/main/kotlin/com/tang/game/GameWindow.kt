@@ -4,6 +4,7 @@ import com.tang.game.business.*
 import com.tang.game.model.*
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
+import org.itheima.kotlin.game.core.Composer
 import org.itheima.kotlin.game.core.Window
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -40,6 +41,9 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
 
         tank = Tank(10 * Config.block, 12 * Config.block)
         views.add(tank)
+
+        val camp = Camp(Config.gameWidth/2,Config.gameHeight)
+        views.add(camp)
     }
 
     override fun onDisplay() {
@@ -88,7 +92,9 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
         }
 
         views.filterIsInstance<Attackable>().forEach { attack ->
-            views.filterIsInstance<Sufferable>().forEach sufferTag@ { suffer ->
+            views.filter { (it is Sufferable) and (attack.owner != it) and (attack != it)}.forEach sufferTag@ { suffer ->
+
+                suffer as Sufferable
                 if (attack.isCollision(suffer)) {
                     attack.notifyAttack(suffer)
                     val blast = suffer.notifySuffer(attack)
@@ -97,6 +103,13 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
                     }
                     return@sufferTag
                 }
+            }
+        }
+
+        views.filterIsInstance<AutoShot>().forEach {
+            var shot = it.autoShot()
+            shot?.let {
+                views.add(shot)
             }
         }
 

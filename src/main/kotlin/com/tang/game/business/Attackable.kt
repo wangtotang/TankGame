@@ -4,6 +4,8 @@ import com.tang.game.model.View
 
 interface Attackable : View {
 
+    val owner: View
+
     val attack: Int
 
     fun isCollision(sufferable: Sufferable): Boolean

@@ -1,13 +1,14 @@
 package com.tang.game.model
 
 import com.tang.game.Config
-import com.tang.game.business.AutoMoveable
-import com.tang.game.business.Blockable
-import com.tang.game.business.Moveable
+import com.tang.game.business.*
+import org.itheima.kotlin.game.core.Composer
 import org.itheima.kotlin.game.core.Painter
 import kotlin.random.Random
 
-class EnemyTank(override var x: Int, override var y: Int) : Moveable, AutoMoveable, Blockable {
+class EnemyTank(override var x: Int, override var y: Int) : Moveable, AutoMoveable, Blockable, AutoShot, Sufferable, Destroyable {
+
+    override var blood: Int = 2
 
     override var direction: Direction = Direction.DOWN
 
@@ -15,7 +16,19 @@ class EnemyTank(override var x: Int, override var y: Int) : Moveable, AutoMoveab
 
     override var wrongDirection: Direction? = null
 
+    var lastShotTime: Long = 0L
+    val shotFrequency: Long = 600L
+
+    var lastMoveTime: Long = 0L
+    val moveFrequency: Long = 50L
+
     override fun autoMove() {
+
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastMoveTime < moveFrequency) return
+        lastMoveTime = currentTime
+
+
         if (direction == wrongDirection) {
             direction = randomDirection()
             return
@@ -49,6 +62,38 @@ class EnemyTank(override var x: Int, override var y: Int) : Moveable, AutoMoveab
         return nextDirection
     }
 
+    override fun autoShot(): View? {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastShotTime < shotFrequency) return null
+        lastShotTime = currentTime
+
+        return Bullet(this, direction) { bulletWidth, bulletHeight ->
+            var bulletX = 0
+            var bulletY = 0
+
+            when (direction) {
+                Direction.UP -> {
+                    bulletX = x + (width - bulletWidth) / 2
+                    bulletY = y - bulletHeight / 2
+                }
+                Direction.DOWN -> {
+                    bulletX = x + (width - bulletWidth) / 2
+                    bulletY = y + height - bulletHeight / 2
+                }
+                Direction.LEFT -> {
+                    bulletX = x - bulletWidth / 2
+                    bulletY = y + (height - bulletHeight) / 2
+                }
+                Direction.RIGHT -> {
+                    bulletX = x + width - bulletWidth / 2
+                    bulletY = y + (height - bulletHeight) / 2
+                }
+            }
+
+            Pair(bulletX ,bulletY)
+        }
+    }
+
     override fun draw() {
         val imagePath = when (direction) {
             Direction.UP -> "imgs/enemy_u.gif"
@@ -57,6 +102,21 @@ class EnemyTank(override var x: Int, override var y: Int) : Moveable, AutoMoveab
             Direction.LEFT -> "imgs/enemy_l.gif"
         }
         Painter.drawImage(imagePath, x, y)
+    }
+
+    override fun isDestroyed(): Boolean = blood <= 0
+
+    override fun notifySuffer(attackable: Attackable): Array<View>? {
+        if (attackable.owner is EnemyTank){
+            return null
+        }
+        blood -= attackable.attack
+        Composer.play("audios/hit.wav")
+        return arrayOf(Blast{ blastWidth, blastHeight ->
+            val blastX = x - (blastWidth - width) / 2
+            val blastY = y - (blastHeight - height) / 2
+            Pair(blastX, blastY)
+        })
     }
 
 }
