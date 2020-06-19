@@ -12,8 +12,14 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Config.gameHeight) {
 
-    val views = CopyOnWriteArrayList<View>()
-    lateinit var tank: Tank
+    private val views = CopyOnWriteArrayList<View>()
+    private lateinit var tank: Tank
+
+    private val enemyBornLocation = arrayListOf<Pair<Int, Int>>()
+    private var enemyTotalSize = 20
+    private val enemyActiveSize = 6
+    private var bornIndex = 0
+    private var gameOver = false
 
     override fun onCreate() {
         val stream = javaClass.getResourceAsStream("/maps/1.map")
@@ -32,7 +38,7 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
                     '铁' -> views.add(Steel(x, y))
                     '水' -> views.add(Water(x, y))
                     '草' -> views.add(Grass(x, y))
-                    '敌' -> views.add(EnemyTank(x, y))
+                    '敌' -> enemyBornLocation.add(Pair(x, y))
                 }
                 columns++
             }
@@ -42,7 +48,7 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
         tank = Tank(10 * Config.block, 12 * Config.block)
         views.add(tank)
 
-        val camp = Camp(Config.gameWidth/2,Config.gameHeight)
+        val camp = Camp(Config.gameWidth / 2 - 60, Config.gameHeight - 90)
         views.add(camp)
     }
 
@@ -53,6 +59,7 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
     }
 
     override fun onKeyPressed(event: KeyEvent) {
+        if (gameOver) return
 
         when (event.code) {
             KeyCode.UP -> tank.move(Direction.UP)
@@ -65,6 +72,25 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
     }
 
     override fun onRefresh() {
+
+        views.filterIsInstance<Destroyable>().forEach {
+            if (it.isDestroyed()) {
+                views.remove(it)
+                var destroyed = it.showDestroyed()
+                destroyed?.let {
+                    views.add(destroyed)
+                }
+                if (it is EnemyTank) {
+                    enemyTotalSize--
+                }
+            }
+        }
+
+        if (gameOver) return
+
+        if (views.filterIsInstance<Camp>().size <= 0 || enemyTotalSize <= 0) {
+            gameOver = true
+        }
 
         views.filterIsInstance<Moveable>().forEach { move ->
 
@@ -85,10 +111,6 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
 
         views.filterIsInstance<AutoMoveable>().forEach {
             it.autoMove()
-        }
-
-        views.filterIsInstance<Destroyable>().forEach {
-            if (it.isDestroyed()) views.remove(it)
         }
 
         views.filterIsInstance<Attackable>().forEach { attack ->
@@ -113,5 +135,21 @@ class GameWindow : Window("坦克大战", "imgs/logo.jpg", Config.gameWidth, Con
             }
         }
 
+        if(views.filterIsInstance<EnemyTank>().size < enemyActiveSize && enemyTotalSize >= enemyActiveSize) {
+            views.add(bornEnemyTank())
+        }
+
+    }
+
+    fun bornEnemyTank(): EnemyTank {
+        bornIndex++
+        val i = bornIndex % enemyActiveSize
+        val tank = EnemyTank(enemyBornLocation[i].first, enemyBornLocation[i].second)
+        views.filterIsInstance<EnemyTank>().forEach {
+            it.willCollision(tank)?.let {
+                return bornEnemyTank()
+            }
+        }
+        return tank
     }
 }

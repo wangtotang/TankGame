@@ -6,4 +6,8 @@ interface Destroyable : View {
 
     fun isDestroyed(): Boolean
 
+    fun showDestroyed(): View? {
+        return null
+    }
+
 }
